@@ -1,24 +1,28 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Newtonsoft.Json;
+using Serilog;
 
 namespace Lab1.Clients;
 
 public class Client
 {
     private readonly Socket _socket;
+    private readonly ClientParams _params;
 
-    public Client()
+    public Client(ClientParams @params)
     {
-        _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); ;
+        _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        _params = @params;
     }
 
-    public void Start(Func<int, double?> func, ClientParams args)
+    public void Start(Func<int, double?> func)
     {
 
-        var ipPoint = new IPEndPoint(IPAddress.Parse(args.Address), args.Port);
+        var ipPoint = new IPEndPoint(IPAddress.Parse(_params.Address), _params.Port);
         _socket.Connect(ipPoint);
-        Console.WriteLine($"{args.Name} started");
+        Log.Information($"{_params.Name} started");
 
         try
         {
@@ -37,9 +41,9 @@ public class Client
 
                 var attemptsCount = 0;
 
-                while (attemptsCount < args.MaxAttemptsCount)
+                while (attemptsCount < _params.MaxAttemptsCount)
                 {
-                    Thread.Sleep(args.SleepTime);
+                    Thread.Sleep(_params.SleepTime);
                     var rand = Random.Shared.Next();
 
                     if (rand % 2 == 0)
@@ -48,14 +52,15 @@ public class Client
 
                         if (result != null)
                         {
-                            _socket.Send(Encoding.Unicode.GetBytes(result.ToString() ?? string.Empty));
-                            Console.WriteLine($"{DateTime.Now.ToShortTimeString()} | {args.Name} have sent result: {result}");
+                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, result.ToString()!));
+                            _socket.Send(Encoding.Unicode.GetBytes(str));
+                            Log.Information($"{_params.Name} have sent result: {result}");
                             break;
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"{DateTime.Now.ToShortTimeString()} | {args.Name} have failed");
+                        Log.Error($"{_params.Name} have failed");
                     }
 
                     attemptsCount++;
@@ -64,7 +69,7 @@ public class Client
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Log.Error(ex.Message);
         }
         finally
         {

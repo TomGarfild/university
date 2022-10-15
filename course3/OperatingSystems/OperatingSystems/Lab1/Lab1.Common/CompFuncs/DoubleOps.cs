@@ -1,4 +1,4 @@
-﻿namespace Lab1.Clients.Functions;
+﻿namespace Lab1.Common.CompFuncs;
 
 public class DoubleOps
 {

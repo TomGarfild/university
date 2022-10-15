@@ -1,4 +1,4 @@
-﻿using Lab1.Clients.Functions;
+﻿using Lab1.Common.CompFuncs;
 
 namespace Lab1.Clients
 {
@@ -12,8 +12,8 @@ namespace Lab1.Clients
         {
             if (Functions.TryGetValue(args[0], out var func))
             {
-                var client = new Client();
-                client.Start(func, new ClientParams($"{args[0].ToUpper()} function client"));
+                var client = new Client(new ClientParams(args[0]));
+                client.Start(func);
             }
             else
             {
