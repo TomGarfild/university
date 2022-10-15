@@ -22,33 +22,25 @@ public class Manager
             var ipPoint = new IPEndPoint(IPAddress.Parse(Address), Port);
             _socket.Bind(ipPoint);
             _socket.Listen(1);
-            Console.WriteLine("Manager started. Waiting for connections...");
+            Console.WriteLine("Manager started");
 
-            var handler = _socket.Accept();
+            var handlerF = _socket.Accept();
+            var serverThreadF = new ClientThread(handlerF);
+            var threadF = new Thread(serverThreadF.Start);
+            threadF.Start();
+            
+            var handlerG = _socket.Accept();
+            var serverThreadG = new ClientThread(handlerG);
+            var threadG = new Thread(serverThreadG.Start);
+            threadG.Start();
+
             while (true)
             {
                 Console.Write("Enter message:");
                 var x = Console.ReadLine();
-
-                try
-                {
-                    handler.Send(Encoding.Unicode.GetBytes(x));
-                    var data = new byte[256];
-                    var builder = new StringBuilder();
-
-                    do
-                    {
-                        var bytes = handler.Receive(data, data.Length, 0);
-                        builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
-                    } while (handler.Available > 0);
-
-                    var res = double.Parse(builder.ToString());
-                    Console.WriteLine($"Result: {res}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
+                serverThreadF.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+                serverThreadG.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+                Prompt();
             }
         }
         catch (Exception ex)
@@ -58,6 +50,27 @@ public class Manager
         finally
         {
             _socket.Close();
+        }
+    }
+
+    private static void Prompt()
+    {
+        Console.WriteLine("(a) continue");
+        Console.WriteLine("(b) continue without prompt");
+        Console.WriteLine("(c) stop");
+        var key = Console.ReadKey();
+
+        switch (key.Key)
+        {
+            case ConsoleKey.A:
+                Console.WriteLine("a");
+                break;
+            case ConsoleKey.B:
+                Console.WriteLine("b");
+                break;
+            case ConsoleKey.C:
+                return;
+
         }
     }
     
