@@ -15,6 +15,8 @@ public class Manager
     private const string Path =
         "D:\\university\\course3\\OperatingSystems\\OperatingSystems\\Lab1\\Lab1.Clients\\bin\\Debug\\net6.0\\Lab1.Clients.exe";
 
+    private readonly List<Process> _processes = new();
+
     public Manager()
     {
         _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -28,26 +30,21 @@ public class Manager
             _socket.Bind(ipPoint);
             _socket.Listen(1);
             Log.Information("Manager started");
-            Process.Start(Path, "f");
 
-            var handlerF = _socket.Accept();
-            var serverThreadF = new ClientThread(handlerF);
-            var threadF = new Thread(serverThreadF.Start);
-            threadF.Start();
 
-            Process.Start(Path, "g");
-            var handlerG = _socket.Accept();
-            var serverThreadG = new ClientThread(handlerG);
-            var threadG = new Thread(serverThreadG.Start);
-            threadG.Start();
+            var f = StartClient(Functions.F);
+            var g = StartClient(Functions.G);
 
-            while (true)
+            var cancelled = false;
+
+            while (!cancelled)
             {
-                Console.Write("Enter message:");
+                Console.Write("Enter x:");
                 var x = Console.ReadLine();
-                serverThreadF.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
-                serverThreadG.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
-                Prompt();
+                ClientThread.Reset();
+                f.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+                g.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+                cancelled = Prompt();
             }
         }
         catch (Exception ex)
@@ -56,14 +53,37 @@ public class Manager
         }
         finally
         {
-            _socket.Close();
+            Dispose();
         }
     }
 
-    private static void Prompt()
+    private void Dispose()
+    {
+        foreach (var process in _processes)
+        {
+            process.Kill();
+            process.WaitForExit();
+            process.Dispose();
+        }
+        _socket.Close();
+    }
+
+    private ClientThread StartClient(string func)
+    {
+        var process = Process.Start(Path, func);
+        _processes.Add(process);
+        var handlerF = _socket.Accept();
+        var serverThreadF = new ClientThread(handlerF);
+        var threadF = new Thread(serverThreadF.Start);
+        threadF.Start();
+
+        return serverThreadF;
+    }
+
+
+    private static bool Prompt()
     {
         var showPrompt = true;
-        ConsoleKey key = default;
         while (true)
         {
             if (showPrompt)
@@ -71,46 +91,44 @@ public class Manager
                 Console.WriteLine("(a) continue");
                 Console.WriteLine("(b) continue without prompt");
                 Console.WriteLine("(c) stop");
-                key = Console.ReadKey().Key;
+                var key = Console.ReadKey().Key;
                 Console.WriteLine();
+
+                switch (key)
+                {
+                    case ConsoleKey.A:
+                        break;
+                    case ConsoleKey.B:
+                        showPrompt = false;
+                        break;
+                    case ConsoleKey.C:
+                        Console.WriteLine("Application is stopped...");
+                        return true;
+                    default:
+                        Console.WriteLine("Wrong key");
+                        continue;
+                }
             }
 
-            switch (key)
+            if (!ClientThread.IsReady) continue;
+
+            if (ClientThread.Errors.Any())
             {
-                case ConsoleKey.A:
-                    break;
-                case ConsoleKey.B:
-                    showPrompt = false;
-                    break;
-                case ConsoleKey.C:
-                    return;
-                default:
-                    Console.WriteLine("Wrong key");
-                    continue;
-
-            }
-
-            if (ClientThread.IsReady)
-            {
-                var fRes = ClientThread.Result[Functions.F];
-                var gRes = ClientThread.Result[Functions.G];
-
-                Console.WriteLine($"Result {fRes} + {gRes}");
+                foreach (var error in ClientThread.Errors)
+                {
+                    Console.WriteLine(error);
+                }
                 break;
             }
+
+            var fRes = ClientThread.Result[Functions.F];
+            var gRes = ClientThread.Result[Functions.G];
+            var res = fRes * gRes;
+
+            Console.WriteLine($"Result: {res}");
+            break;
         }
-    }
-    
 
-    public static void SoftFail()
-    {
-        Console.WriteLine("Soft fail");
-        Environment.Exit(1);
-    }
-
-    public static void HardFail()
-    {
-        Console.WriteLine("Hard fail");
-        Environment.Exit(2);
+        return false;
     }
 }

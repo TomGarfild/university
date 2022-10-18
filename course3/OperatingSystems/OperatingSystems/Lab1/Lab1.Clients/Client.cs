@@ -41,27 +41,44 @@ public class Client
                 var x = int.Parse(builder.ToString());
 
                 var attemptsCount = 0;
+                var error = string.Empty;
 
                 while (attemptsCount < _params.MaxAttemptsCount)
                 {
-                    Thread.Sleep(_params.SleepTime);
-                    var rand = Random.Shared.Next();
 
-                    if (rand % 2 == 0)
+                    var result = func(x);
+
+                    if (result.HasValue)
                     {
-                        var result = func(x).Value.Value;
+                        var mid = result.Value;
 
-                        var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, result.ToString()!));
-                        _socket.Send(Encoding.Unicode.GetBytes(str));
-                        Log.Information($"{_params.Name} have sent result: {result}");
-                        break;
+                        if (mid.HasValue)
+                        {
+                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, mid.Value.ToString()!));
+                            _socket.Send(Encoding.Unicode.GetBytes(str));
+                            Log.Information($"{_params.Name} have sent result: {result}");
+                            error = string.Empty;
+                            break;
+                        }
+
+                        if (error == string.Empty)
+                        {
+                            error = $"Error: soft fail for {_params.Name} with x: {x}, retries: {_params.MaxAttemptsCount}"; // soft fail
+                        }
                     }
                     else
                     {
-                        Log.Error($"{_params.Name} have failed");
+                        error = $"Error: hard fail for {_params.Name} with x: {x}"; // hard fail
+                        break;
                     }
 
+
                     attemptsCount++;
+                }
+
+                if (error == string.Empty)
+                {
+                    _socket.Send(Encoding.Unicode.GetBytes(error));
                 }
             }
         }
