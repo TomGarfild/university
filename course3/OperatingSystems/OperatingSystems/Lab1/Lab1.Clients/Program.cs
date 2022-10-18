@@ -1,10 +1,11 @@
-﻿using Lab1.Common.CompFuncs;
+﻿using Lab1.Common.CompFuncs.Advanced;
+using Microsoft.CodeAnalysis;
 
 namespace Lab1.Clients
 {
     internal class Program
     {
-        private static readonly Dictionary<string, Func<int, double?>> Functions = new()
+        private static readonly Dictionary<string, Func<int, Optional<Optional<double>>>> Functions = new()
             { { "f", DoubleOps.TrialF }, { "g", DoubleOps.TrialG } };
 
 

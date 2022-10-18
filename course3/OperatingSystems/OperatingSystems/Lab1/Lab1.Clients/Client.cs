@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -17,7 +18,7 @@ public class Client
         _params = @params;
     }
 
-    public void Start(Func<int, double?> func)
+    public void Start(Func<int, Optional<Optional<double>>> func)
     {
 
         var ipPoint = new IPEndPoint(IPAddress.Parse(_params.Address), _params.Port);
@@ -48,15 +49,12 @@ public class Client
 
                     if (rand % 2 == 0)
                     {
-                        var result = func(x);
+                        var result = func(x).Value.Value;
 
-                        if (result != null)
-                        {
-                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, result.ToString()!));
-                            _socket.Send(Encoding.Unicode.GetBytes(str));
-                            Log.Information($"{_params.Name} have sent result: {result}");
-                            break;
-                        }
+                        var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, result.ToString()!));
+                        _socket.Send(Encoding.Unicode.GetBytes(str));
+                        Log.Information($"{_params.Name} have sent result: {result}");
+                        break;
                     }
                     else
                     {
