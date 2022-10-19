@@ -47,6 +47,7 @@ public class ClientThread
     public static void Reset()
     {
         Result.Clear();
+        Errors.Clear();
         IsReady = false;
     }
 

@@ -1,5 +1,5 @@
-﻿using Lab1.Common.CompFuncs.Advanced;
-using Microsoft.CodeAnalysis;
+﻿using Lab1.Common;
+using Lab1.Common.CompFuncs.Advanced;
 
 namespace Lab1.Clients
 {
@@ -11,6 +11,10 @@ namespace Lab1.Clients
 
         private static void Main(string[] args)
         {
+            if (args.Length == 0)
+            {
+                args = new[] { "f" };
+            }
             if (Functions.TryGetValue(args[0], out var func))
             {
                 var client = new Client(new ClientParams(args[0]));

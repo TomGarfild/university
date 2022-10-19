@@ -8,6 +8,7 @@ namespace Lab1.Manager;
 
 public class Manager
 {
+    private readonly bool IsDebug;
     private readonly Socket _socket;
     private const string Address = "127.0.0.1";
     private const int Port = 8005;
@@ -17,9 +18,10 @@ public class Manager
 
     private readonly List<Process> _processes = new();
 
-    public Manager()
+    public Manager(bool isDebug = false)
     {
         _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        IsDebug = isDebug;
     }
 
     public void Start()
@@ -34,6 +36,7 @@ public class Manager
 
             var f = StartClient(Functions.F);
             var g = StartClient(Functions.G);
+            
 
             var cancelled = false;
 
@@ -70,7 +73,7 @@ public class Manager
 
     private ClientThread StartClient(string func)
     {
-        var process = Process.Start(Path, func);
+        var process = IsDebug && func == "f" ? Process.GetProcessesByName("Lab1.Clients")[0] : Process.Start(Path, func);
         _processes.Add(process);
         var handlerF = _socket.Accept();
         var serverThreadF = new ClientThread(handlerF);

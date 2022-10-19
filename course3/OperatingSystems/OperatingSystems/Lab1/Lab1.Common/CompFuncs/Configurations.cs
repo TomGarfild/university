@@ -1,34 +1,42 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Diagnostics;
 
 namespace Lab1.Common.CompFuncs;
 
 public class Configurations
 {
-    public Configurations()
-    {
-    }
-
     public static Optional<OR> FlatGenericFunc<OR>(OR var0, int var1)
     {
         try
         {
+            Debugger.Log(0, "", $"{var1}");
             Thread.Sleep(var1);
         }
         catch (ThreadInterruptedException)
         {
-            return new Optional<OR>();
+            return Optional<OR>.Empty();
         }
 
-        return var0;
+        return Optional<OR>.Of(var0);
     }
 
     public static Optional<Optional<R>> FlatGenericFunc<R>(ComputationAttrs<R> var0)
     {
-        return FlatGenericFunc(new Optional<R>(var0.Result), var0.Delay);
+        return FlatGenericFunc(Optional<R>.OfNullable(var0.Result), var0.Delay);
     }
 
     public static Optional<R> GenericFunc<R>(Optional<ComputationAttrs<R>> var0)
     {
-        return var0.Value.Result;
+        return Optional<ComputationAttrs<R>>.OfNullable(var0.OrElseGet(() =>
+        {
+            //try
+            //{
+            //    Thread.CurrentThread.Join();
+            //}
+            //catch (ThreadInterruptedException)
+            //{
+            //}
+
+            return null;
+        })).FlatMap(FlatGenericFunc).OrElseThrow(() => new ThreadInterruptedException());
     }
 }

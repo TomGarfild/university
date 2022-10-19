@@ -1,6 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-
-namespace Lab1.Common.CompFuncs.Basic;
+﻿namespace Lab1.Common.CompFuncs.Basic;
 
 class Case<T>
 {
@@ -9,7 +7,7 @@ class Case<T>
 
     public Case(ComputationAttrs<T> var1, ComputationAttrs<T> var2)
     {
-        FAttrs = new Optional<ComputationAttrs<T>>(var1);
-        GAttrs = new Optional<ComputationAttrs<T>>(var2);
+        FAttrs = Optional<ComputationAttrs<T>>.OfNullable(var1);
+        GAttrs = Optional<ComputationAttrs<T>>.OfNullable(var2);
     }
 }

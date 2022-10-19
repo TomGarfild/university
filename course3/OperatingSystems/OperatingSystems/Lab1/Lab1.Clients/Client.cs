@@ -1,7 +1,8 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Microsoft.CodeAnalysis;
+using Lab1.Common;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -20,7 +21,6 @@ public class Client
 
     public void Start(Func<int, Optional<Optional<double>>> func)
     {
-
         var ipPoint = new IPEndPoint(IPAddress.Parse(_params.Address), _params.Port);
         _socket.Connect(ipPoint);
         Log.Information($"{_params.Name} started");
@@ -48,35 +48,32 @@ public class Client
 
                     var result = func(x);
 
-                    if (result.HasValue)
+                    if (result.IsPresent())
                     {
-                        var mid = result.Value;
+                        var mid = result.Get();
 
-                        if (mid.HasValue)
+                        if (mid.IsPresent())
                         {
-                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, mid.Value.ToString()!));
+                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, mid.Get()!.ToString()));
                             _socket.Send(Encoding.Unicode.GetBytes(str));
                             Log.Information($"{_params.Name} have sent result: {result}");
                             error = string.Empty;
                             break;
                         }
 
-                        if (error == string.Empty)
-                        {
-                            error = $"Error: soft fail for {_params.Name} with x: {x}, retries: {_params.MaxAttemptsCount}"; // soft fail
-                        }
-                    }
-                    else
-                    {
                         error = $"Error: hard fail for {_params.Name} with x: {x}"; // hard fail
                         break;
+                    }
+                    else if(error == string.Empty)
+                    {
+                        error = $"Error: soft fail for {_params.Name} with x: {x}, retries: {_params.MaxAttemptsCount}"; // soft fail
                     }
 
 
                     attemptsCount++;
                 }
 
-                if (error == string.Empty)
+                if (error != string.Empty)
                 {
                     _socket.Send(Encoding.Unicode.GetBytes(error));
                 }
