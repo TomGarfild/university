@@ -13,13 +13,13 @@ public class Manager
     private const string Address = "127.0.0.1";
     private const int Port = 8005;
 
-    private const string Path =
-        "D:\\university\\course3\\OperatingSystems\\OperatingSystems\\Lab1\\Lab1.Clients\\bin\\Debug\\net6.0\\Lab1.Clients.exe";
+    public string Path { get; }
 
     private readonly List<Process> _processes = new();
 
-    public Manager(bool isDebug = false)
+    public Manager(string path, bool isDebug = false)
     {
+        Path = path;
         _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         IsDebug = isDebug;
     }
