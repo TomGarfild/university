@@ -34,21 +34,27 @@ public class Manager
             Log.Information("Manager started");
 
 
-            var f = StartClient(Functions.F);
-            var g = StartClient(Functions.G);
-            
+            using var f = StartClient(Functions.F);
+            using var g = StartClient(Functions.G);
 
             var cancelled = false;
 
             while (!cancelled)
             {
-                Console.Write("Enter x:");
-                var x = Console.ReadLine();
+                string x;
+                do
+                {
+                    Console.Write("Enter x:");
+                    x = Console.ReadLine();
+                } while (!int.TryParse(x, out _));
                 ClientThread.Reset();
                 f.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
                 g.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+
                 cancelled = Prompt();
             }
+
+            Console.WriteLine("Application is stopped...");
         }
         catch (Exception ex)
         {
@@ -75,19 +81,20 @@ public class Manager
     {
         var process = IsDebug && func == "f" ? Process.GetProcessesByName("Lab1.Clients")[0] : Process.Start(Path, func);
         _processes.Add(process);
-        var handlerF = _socket.Accept();
-        var serverThreadF = new ClientThread(handlerF);
-        var threadF = new Thread(serverThreadF.Start);
-        threadF.Start();
+        var handler = _socket.Accept();
+        var serverThread = new ClientThread(handler);
+        var thread = new Thread(serverThread.Start);
+        thread.Start();
 
-        return serverThreadF;
+        return serverThread;
     }
 
 
     private static bool Prompt()
     {
         var showPrompt = true;
-        while (true)
+        var cancelled = false;
+        while (!cancelled)
         {
             if (showPrompt)
             {
@@ -105,15 +112,15 @@ public class Manager
                         showPrompt = false;
                         break;
                     case ConsoleKey.C:
-                        Console.WriteLine("Application is stopped...");
-                        return true;
+                        cancelled = true;
+                        break;
                     default:
                         Console.WriteLine("Wrong key");
                         continue;
                 }
             }
 
-            if (!ClientThread.IsReady) continue;
+            if (!(cancelled || ClientThread.IsReady)) continue;
 
             if (ClientThread.Errors.Any())
             {
@@ -124,14 +131,26 @@ public class Manager
                 break;
             }
 
-            var fRes = ClientThread.Result[Functions.F];
-            var gRes = ClientThread.Result[Functions.G];
-            var res = fRes * gRes;
+            if (ClientThread.Result.TryGetValue(Functions.F, out var fRes) && cancelled)
+            {
+                Console.WriteLine("F client did not finish before cancellation");
+            }
 
-            Console.WriteLine($"Result: {res}");
+            if (ClientThread.Result.TryGetValue(Functions.G, out var gRes) && cancelled)
+            {
+                Console.WriteLine("G client did not finish before cancellation");
+            }
+
+            if (!cancelled)
+            {
+                var res = fRes * gRes;
+
+                Console.WriteLine($"f: {fRes}, g:{gRes}, binary operation: *");
+                Console.WriteLine($"Result: {res}");
+            }
             break;
         }
 
-        return false;
+        return cancelled;
     }
 }

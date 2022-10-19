@@ -12,6 +12,6 @@ public class ClientParams
     internal string Name { get; }
     internal int Port { get; init; } = 8005;
     internal string Address { get; init; } = "127.0.0.1";
-    internal int MaxAttemptsCount { get; init; } = 5;
+    internal int MaxAttemptsCount { get; init; } = 3;
     internal int SleepTime { get; init; } = 2000;
 }

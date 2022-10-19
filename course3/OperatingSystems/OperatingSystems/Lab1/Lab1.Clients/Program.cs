@@ -5,7 +5,7 @@ namespace Lab1.Clients
 {
     internal class Program
     {
-        private static readonly Dictionary<string, Func<int, Optional<Optional<double>>>> Functions = new()
+        private static readonly Dictionary<string, Func<int, Optional<Optional<double?>>>> Functions = new()
             { { "f", DoubleOps.TrialF }, { "g", DoubleOps.TrialG } };
 
 

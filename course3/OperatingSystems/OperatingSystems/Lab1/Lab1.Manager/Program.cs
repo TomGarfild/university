@@ -5,7 +5,7 @@
         
         private static void Main(string[] args)
         {
-            var manager = new Manager(true);
+            var manager = new Manager();
             manager.Start();
             Console.ReadKey();
         }

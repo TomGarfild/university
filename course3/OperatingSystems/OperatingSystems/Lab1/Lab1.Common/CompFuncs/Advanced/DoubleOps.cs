@@ -4,27 +4,29 @@ namespace Lab1.Common.CompFuncs.Advanced;
 
 public class DoubleOps
 {
-    public static Optional<Optional<double>> TrialF(int x)
+    public static Optional<Optional<double?>> TrialF(int x)
     {
         try
         {
-            return Optional<Optional<double>>.Of(BasicDoubleOps.TrialF(x));
+            var value = BasicDoubleOps.TrialG(x);
+            return Optional<Optional<double?>>.OfNullable(!value.IsPresent() || Random.Shared.Next(0, 2) == 0 ? BasicDoubleOps.TrialF(x) : null);
         }
         catch (ThreadInterruptedException)
         {
-            return Optional<Optional<double>>.Empty();
+            return Optional<Optional<double?>>.Empty();
         }
     }
 
-    public static Optional<Optional<double>> TrialG(int x)
+    public static Optional<Optional<double?>> TrialG(int x)
     {
         try
         {
-            return Optional<Optional<double>>.Of(BasicDoubleOps.TrialG(x));
+            var value = BasicDoubleOps.TrialG(x);
+            return Optional<Optional<double?>>.OfNullable(!value.IsPresent() || Random.Shared.Next(0, 3) == 0 ? value : null);
         }
         catch (ThreadInterruptedException)
         {
-            return Optional<Optional<double>>.Empty();
+            return Optional<Optional<double?>>.Empty();
         }
     }
 }

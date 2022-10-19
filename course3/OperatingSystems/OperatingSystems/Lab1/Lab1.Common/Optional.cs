@@ -36,7 +36,7 @@ public sealed class Optional<T>
     public bool IsPresent() {
         return _value != null;
     }
-    public Optional<U> Map<U>(Func<T, U> mapper) where U : class
+    public Optional<U> Map<U>(Func<T, U> mapper)
     {
         if (mapper == null)
         {
@@ -50,7 +50,7 @@ public sealed class Optional<T>
         return Optional<U>.OfNullable(mapper(_value));
     }
     
-    public Optional<U> FlatMap<U>(Func<T, Optional<U>> mapper) where U : class
+    public Optional<U> FlatMap<U>(Func<T, Optional<U>> mapper)
     {
         if (mapper == null)
         {
@@ -65,11 +65,11 @@ public sealed class Optional<T>
     }
     
     public T OrElse(T other) {
-        return _value != null ? _value : other;
+        return _value ?? other;
     }
     
     public T OrElseGet(Func<T> other) {
-        return _value != null ? _value : other();
+        return _value ?? other();
     }
     
     public  T OrElseThrow<TException>(Func<TException> exceptionSupplier) where TException : Exception {

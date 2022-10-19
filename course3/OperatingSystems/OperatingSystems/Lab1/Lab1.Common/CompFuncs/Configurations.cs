@@ -8,8 +8,7 @@ public class Configurations
     {
         try
         {
-            Debugger.Log(0, "", $"{var1}");
-            Thread.Sleep(var1);
+            Thread.Sleep(var1 * 1000);
         }
         catch (ThreadInterruptedException)
         {

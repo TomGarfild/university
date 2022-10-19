@@ -19,7 +19,7 @@ public class Client
         _params = @params;
     }
 
-    public void Start(Func<int, Optional<Optional<double>>> func)
+    public void Start(Func<int, Optional<Optional<double?>>> func)
     {
         var ipPoint = new IPEndPoint(IPAddress.Parse(_params.Address), _params.Port);
         _socket.Connect(ipPoint);
