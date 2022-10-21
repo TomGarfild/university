@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using System.Net;
 using Lab1.Common;
-using Serilog;
 
 namespace Lab1.Manager;
 
@@ -31,34 +30,33 @@ public class Manager
             var ipPoint = new IPEndPoint(IPAddress.Parse(Address), Port);
             _socket.Bind(ipPoint);
             _socket.Listen(1);
-            Log.Information("Manager started");
-
 
             using var f = StartClient(Functions.F);
             using var g = StartClient(Functions.G);
 
-            var cancelled = false;
 
-            while (!cancelled)
+            var cts = new CancellationTokenSource();
+
+            while (true)
             {
-                string x;
+                int x;
                 do
                 {
                     Console.Write("Enter x:");
-                    x = Console.ReadLine();
-                } while (!int.TryParse(x, out _));
-                ClientThread.Reset();
-                f.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
-                g.XChanged?.Invoke(this, new ClientThread.XArgs { X = x });
+                } while (!int.TryParse(Console.ReadLine(), out x));
 
-                cancelled = Prompt();
+                f.Send(x);
+                g.Send(x);
+
+                Prompt(f, g);
             }
-
-            Console.WriteLine("Application is stopped...");
         }
         catch (Exception ex)
         {
-            Log.Error(ex.Message);
+            if (IsDebug)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
         finally
         {
@@ -82,15 +80,15 @@ public class Manager
         var process = IsDebug && func == "f" ? Process.GetProcessesByName("Lab1.Clients")[0] : Process.Start(Path, func);
         _processes.Add(process);
         var handler = _socket.Accept();
-        var serverThread = new ClientThread(handler);
-        var thread = new Thread(serverThread.Start);
+        var clientThread = new ClientThread(handler, func);
+        var thread = new Thread(() => clientThread.Start());
         thread.Start();
 
-        return serverThread;
+        return clientThread;
     }
 
 
-    private static bool Prompt()
+    private static void Prompt(ClientThread f, ClientThread g)
     {
         var showPrompt = true;
         var cancelled = false;
@@ -100,7 +98,7 @@ public class Manager
             {
                 Console.WriteLine("(a) continue");
                 Console.WriteLine("(b) continue without prompt");
-                Console.WriteLine("(c) stop");
+                Console.WriteLine("(c) cancel");
                 var key = Console.ReadKey().Key;
                 Console.WriteLine();
 
@@ -112,6 +110,8 @@ public class Manager
                         showPrompt = false;
                         break;
                     case ConsoleKey.C:
+                        f.Cancel();
+                        g.Cancel();
                         cancelled = true;
                         break;
                     default:
@@ -120,37 +120,26 @@ public class Manager
                 }
             }
 
-            if (!(cancelled || ClientThread.IsReady)) continue;
 
-            if (ClientThread.Errors.Any())
+            var fCancelled = cancelled;
+            var gCancelled = cancelled;
+
+            var fRes = f.GetResult(ref fCancelled);
+            var gRes = g.GetResult(ref gCancelled);
+
+            if (fCancelled || gCancelled)
             {
-                foreach (var error in ClientThread.Errors)
-                {
-                    Console.WriteLine(error);
-                }
                 break;
             }
 
-            if (ClientThread.Result.TryGetValue(Functions.F, out var fRes) && cancelled)
-            {
-                Console.WriteLine("F client did not finish before cancellation");
-            }
-
-            if (ClientThread.Result.TryGetValue(Functions.G, out var gRes) && cancelled)
-            {
-                Console.WriteLine("G client did not finish before cancellation");
-            }
-
-            if (!cancelled)
+            if (fRes.HasValue && gRes.HasValue)
             {
                 var res = fRes * gRes;
 
-                Console.WriteLine($"f: {fRes}, g:{gRes}, binary operation: *");
+                // Console.WriteLine($"f:{fRes}, g:{gRes}, binary operation: *");
                 Console.WriteLine($"Result: {res}");
+                break;
             }
-            break;
         }
-
-        return cancelled;
     }
 }

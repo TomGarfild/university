@@ -1,107 +1,73 @@
-﻿using System.Collections.Concurrent;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text;
-using Newtonsoft.Json;
-using Serilog;
 
 namespace Lab1.Manager;
 
 public class ClientThread : IDisposable
 {
-    public static readonly ConcurrentDictionary<string, double> Result = new();
-    public static readonly ConcurrentBag<string> Errors = new();
-    public static bool IsReady { get; private set; }
+    private string _result;
+
+    private string Name { get; }
 
     private readonly Socket _socket;
 
-    public EventHandler<XArgs> XChanged;
+    private volatile bool _isCancelled;
 
-    private static bool _cancelled;
-
-    public ClientThread(Socket socket)
+    public ClientThread(Socket socket, string name)
     {
         _socket = socket;
-        XChanged += SendMessage;
+        Name = name;
     }
 
     public void Start()
     {
-        while (!_cancelled)
+        while (true)
         {
             var data = new byte[256];
-            var messageBuilder = new StringBuilder();
-
-            try
+            var bytes = _socket.Receive(data, data.Length, 0);
+            if (!_isCancelled)
             {
-                do
-                {
-                    var bytes = _socket.Receive(data, data.Length, 0);
-                    messageBuilder.Append(Encoding.Unicode.GetString(data, 0, bytes));
-                } while (_socket.Available > 0);
-            }
-            catch (Exception) {}
-            ProcessMessage(messageBuilder.ToString());
-
-            if (Result.Count == 2 || Errors.Any())
-            {
-                IsReady = true;
+                _result = Encoding.Unicode.GetString(data, 0, bytes);
             }
         }
     }
 
-    public static void Reset()
+    public void Cancel()
     {
-        Result.Clear();
-        Errors.Clear();
-        IsReady = false;
+        _isCancelled = true;
     }
 
-    private void SendMessage(object sender, XArgs xArgs)
+    public void Send(int x)
     {
-        _socket.Send(Encoding.Unicode.GetBytes(xArgs.X));
+        _socket.Send(BitConverter.GetBytes(x));
+        _result = null;
+        _isCancelled = false;
     }
-
-    private static void Cancel()
+    
+    public double? GetResult(ref bool cancelled)
     {
-        _cancelled = true;
-    }
-
-    private static void ProcessMessage(string message)
-    {
-        if (!string.IsNullOrEmpty(message))
+        if (_result == null)
         {
-            if (message.StartsWith("Error:"))
+            if (cancelled)
             {
-                Log.Error(message);
-                Errors.Add(message);
-                return;
+                Console.WriteLine($"{Name} client did not finish before cancellation");
             }
-
-
-            try
-            {
-                var res = JsonConvert.DeserializeObject<KeyValuePair<string, double>>(message);
-                if (!Result.TryAdd(res.Key, res.Value))
-                {
-                    Log.Error($"Could not add {res.Key}:{res.Value}");
-                }
-            }
-            catch (Exception)
-            {
-                Console.WriteLine(message);
-            }
+            return null;
         }
-    }
 
-    public class XArgs : EventArgs
-    {
-        public string X { get; set; }
+        if (double.TryParse(_result, out var res))
+        {
+            return res;
+        }
+
+        Console.WriteLine(_result); // Error
+        cancelled = true;
+        return null;
     }
 
     public void Dispose()
     {
-        _cancelled = true;
+        _socket.Shutdown(SocketShutdown.Both);
         _socket.Close();
-        _socket?.Dispose();
     }
 }

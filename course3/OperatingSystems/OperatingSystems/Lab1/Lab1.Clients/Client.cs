@@ -1,10 +1,7 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Lab1.Common;
-using Newtonsoft.Json;
-using Serilog;
 
 namespace Lab1.Clients;
 
@@ -23,27 +20,24 @@ public class Client
     {
         var ipPoint = new IPEndPoint(IPAddress.Parse(_params.Address), _params.Port);
         _socket.Connect(ipPoint);
-        Log.Information($"{_params.Name} started");
+        // Console.WriteLine($"{_params.Name} started");
 
         try
         {
             while (true)
             {
-                var builder = new StringBuilder();
                 var data = new byte[256];
 
                 do
                 {
-                    var bytes = _socket.Receive(data);
-                    builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
+                    _socket.Receive(data);
                 } while (_socket.Available > 0);
-
-                var x = int.Parse(builder.ToString());
+                var x = BitConverter.ToInt32(data);
 
                 var attemptsCount = 0;
                 var error = string.Empty;
 
-                while (attemptsCount < _params.MaxAttemptsCount)
+                while (attemptsCount < _params.MaxAttemptsCount && _socket.Available == 0)
                 {
 
                     var result = func(x);
@@ -54,9 +48,11 @@ public class Client
 
                         if (mid.IsPresent())
                         {
-                            var str = JsonConvert.SerializeObject(new KeyValuePair<string, string>(_params.ShortName, mid.Get()!.ToString()));
-                            _socket.Send(Encoding.Unicode.GetBytes(str));
-                            Log.Information($"{_params.Name} have sent result: {result}");
+                            if (_socket.Available == 0)
+                            {
+                                _socket.Send(Encoding.Unicode.GetBytes(mid.Get().ToString()!));
+                                // Console.WriteLine($"\n{_params.Name} have sent result: {mid.Get()}");
+                            }
                             error = string.Empty;
                             break;
                         }
@@ -73,15 +69,16 @@ public class Client
                     attemptsCount++;
                 }
 
-                if (error != string.Empty)
+                if (error != string.Empty && _socket.Available == 0)
                 {
                     _socket.Send(Encoding.Unicode.GetBytes(error));
+                    // Console.WriteLine($"\n{_params.Name}: {error}");
                 }
             }
         }
         catch (Exception ex)
-        {
-            Log.Error(ex.Message);
+        { 
+            Console.WriteLine(ex.Message);
         }
         finally
         {
