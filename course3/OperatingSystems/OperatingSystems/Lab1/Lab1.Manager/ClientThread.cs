@@ -39,7 +39,8 @@ public class ClientThread : IDisposable
 
     public void Send(int x)
     {
-        _socket.Send(BitConverter.GetBytes(x));
+        var data = BitConverter.GetBytes(x);
+        _socket.Send(data, 0, data.Length, SocketFlags.None);
         _result = null;
         _isCancelled = false;
     }

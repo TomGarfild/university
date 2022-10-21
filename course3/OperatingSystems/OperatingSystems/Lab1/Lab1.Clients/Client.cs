@@ -27,12 +27,13 @@ public class Client
             while (true)
             {
                 var data = new byte[256];
+                int bytes;
 
                 do
                 {
-                    _socket.Receive(data);
+                    bytes = _socket.Receive(data);
                 } while (_socket.Available > 0);
-                var x = BitConverter.ToInt32(data);
+                var x = BitConverter.ToInt32(data, bytes - sizeof(int));
 
                 var attemptsCount = 0;
                 var error = string.Empty;
