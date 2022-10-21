@@ -8,8 +8,8 @@ public class DoubleOps
     {
         try
         {
-            var value = BasicDoubleOps.TrialG(x);
-            return Optional<Optional<double?>>.OfNullable(!value.IsPresent() || Random.Shared.Next(0, 2) == 0 ? BasicDoubleOps.TrialF(x) : null);
+            var value = BasicDoubleOps.TrialF(x);
+            return Optional<Optional<double?>>.OfNullable(!value.IsPresent() || Random.Shared.Next(0, 2) == 0 ? value : null);
         }
         catch (ThreadInterruptedException)
         {
