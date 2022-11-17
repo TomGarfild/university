@@ -12,8 +12,8 @@ public class Scheduling
     private static int standardDev = 100;
     private static int runtime = 1000;
     private static int quantum = 500;
-    private static ArrayList processVector = new ArrayList();
-    private static readonly Random generator = new Random();
+    private static List<sProcess> processVector = new();
+    private static int currentcpu = 0;
     private static Results result = new Results("null", "null", 0);
     private static string resultsFile = "Summary-Results";
     private const double e = 1e-6;
@@ -44,24 +44,23 @@ public class Scheduling
                     var st = line.Split(' ');
                     quantum = Common.S2I(st[1]);
                 }
+                if (line.StartsWith("arrivaltime") && processVector.Count < processnum)
+                {
+                    var st = line.Split(' ');
+                    var X = Common.R1();
+                    while (Math.Abs(X + 1.0) < e)
+                    {
+                        X = Common.R1();
+                    }
+                    X *= standardDev;
+                    var cputime = (int)X + meanDev;
+                    processVector.Add(new sProcess(cputime, 0, 0, 0, Common.S2I(st[1]), currentcpu++));
+                }
                 if (line.StartsWith("runtime"))
                 {
                     var st = line.Split(' ');
                     runtime = Common.S2I(st[1]);
                 }
-            }
-
-
-            for (int i = 0; i < processnum; i++)
-            {
-                var X = Common.R1();
-                while (Math.Abs(X + 1.0) < e)
-                {
-                    X = Common.R1();
-                }
-                X *= standardDev;
-                var cputime = (int)X + meanDev;
-                processVector.Add(new sProcess(cputime, 0, 0, 0, i));
             }
         }
         catch (IOException e) { /* Handle exceptions */ }
@@ -78,7 +77,7 @@ public class Scheduling
                 }
                 X *= standardDev;
                 var cputime = (int)X + meanDev;
-                processVector.Add(new sProcess(cputime, i * 100, 0, 0, processVector.Count));
+                processVector.Add(new sProcess(cputime, i * 100, 0, 0, 0, processVector.Count));
                 i++;
             }
         }

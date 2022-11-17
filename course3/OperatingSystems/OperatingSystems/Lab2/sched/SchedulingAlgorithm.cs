@@ -6,20 +6,21 @@ namespace Lab2.sched;
 public class SchedulingAlgorithm
 {
 
-    public static Results Run(int runtime, int quantum, ArrayList processVector, Results result)
+    public static Results Run(int runtime, int quantum, List<sProcess> processVector, Results result)
     {
         var comptime = 0;
         var size = processVector.Count;
         var completed = 0;
         var resultsFile = "Summary-Processes";
-        var processQueue = new Queue(processVector);
+        var orderedProcesses = new List<sProcess>(processVector).OrderBy(p => p.arrivaltime);
+        var processQueue = new Queue<sProcess>(processVector.Where(p => p.arrivaltime == 0));
 
         result.schedulingType = "Interactive (Preemptive)";
         result.schedulingName = "Round Robin";
         try
         {
             using var output = new FileStream(resultsFile, FileMode.Truncate, FileAccess.Write);
-            var process = (sProcess)processQueue.Dequeue()!;
+            var process = processQueue.Dequeue()!;
             output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
             var finish = false;
             while (comptime < runtime)
@@ -35,7 +36,7 @@ public class SchedulingAlgorithm
                         output.Close();
                         return result;
                     }
-                    process = (sProcess)processQueue.Dequeue()!;
+                    process = processQueue.Dequeue()!;
                     output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
                     finish = true;
                 }
@@ -45,13 +46,18 @@ public class SchedulingAlgorithm
                     process.numblocked++;
                     process.quantumnext = 0;
                     processQueue.Enqueue(process);
-                    process = (sProcess)processQueue.Dequeue()!;
+                    process = processQueue.Dequeue()!;
                     output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
                     finish = true;
                 }
                 process.cpudone++;
                 process.quantumnext++;
                 comptime++;
+                foreach (var p in orderedProcesses.Where(o => o.arrivaltime == comptime))
+                {
+                    processQueue.Enqueue(p);
+                    output.Write(Encoding.Default.GetBytes("Process: " + p.index + " arrived at " + comptime + "... (" + p.cputime + " " + p.cpudone + ")\n"));
+                }
             }
             if (!finish)
             {
