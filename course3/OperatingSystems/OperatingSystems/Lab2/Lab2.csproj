@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <None Update="sched\scheduling.conf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

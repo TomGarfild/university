@@ -6,75 +6,61 @@ namespace Lab2.sched;
 public class SchedulingAlgorithm
 {
 
-    public static Results Run(int runtime, ArrayList processVector, Results result)
+    public static Results Run(int runtime, int quantum, ArrayList processVector, Results result)
     {
-        var i = 0;
         var comptime = 0;
-        var currentProcess = 0;
-        var previousProcess = 0;
         var size = processVector.Count;
         var completed = 0;
         var resultsFile = "Summary-Processes";
+        var processQueue = new Queue(processVector);
 
-        result.schedulingType = "Batch (Nonpreemptive)";
-        result.schedulingName = "First-Come First-Served";
+        result.schedulingType = "Interactive (Preemptive)";
+        result.schedulingName = "Round Robin";
         try
         {
-            //BufferedWriter out = new BufferedWriter(new FileWriter(resultsFile));
-            //OutputStream out = new FileOutputStream(resultsFile);
-            using var output = new FileStream(resultsFile, FileMode.OpenOrCreate, FileAccess.Write);
-            var process = (sProcess)processVector[currentProcess]!;
-            output.Write(Encoding.Default.GetBytes("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")\n"));
+            using var output = new FileStream(resultsFile, FileMode.Truncate, FileAccess.Write);
+            var process = (sProcess)processQueue.Dequeue()!;
+            output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
+            var finish = false;
             while (comptime < runtime)
             {
+                finish = false;
                 if (process.cpudone == process.cputime)
                 {
                     completed++;
-                    output.Write(Encoding.Default.GetBytes("Process: " + currentProcess + " completed... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")\n"));
+                    output.Write(Encoding.Default.GetBytes("Process: " + process.index + " completed... (" + process.cputime + " " + process.cpudone + ")\n"));
                     if (completed == size)
                     {
                         result.compuTime = comptime;
                         output.Close();
                         return result;
                     }
-                    for (i = size - 1; i >= 0; i--)
-                    {
-                        process = (sProcess)processVector[i]!;
-                        if (process.cpudone < process.cputime)
-                        {
-                            currentProcess = i;
-                        }
-                    }
-                    process = (sProcess)processVector[currentProcess]!;
-                    output.Write(Encoding.Default.GetBytes("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")\n"));
+                    process = (sProcess)processQueue.Dequeue()!;
+                    output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
+                    finish = true;
                 }
-                if (process.ioblocking == process.ionext)
+                if (quantum == process.quantumnext)
                 {
-                    output.Write(Encoding.Default.GetBytes("Process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")\n"));
+                    output.Write(Encoding.Default.GetBytes("Process: " + process.index + " spent quantum... (" + process.cputime + " " + process.cpudone + ")\n"));
                     process.numblocked++;
-                    process.ionext = 0;
-                    previousProcess = currentProcess;
-                    for (i = size - 1; i >= 0; i--)
-                    {
-                        process = (sProcess)processVector[i]!;
-                        if (process.cpudone < process.cputime && previousProcess != i)
-                        {
-                            currentProcess = i;
-                        }
-                    }
-                    process = (sProcess)processVector[currentProcess]!;
-                    output.Write(Encoding.Default.GetBytes("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")\n"));
+                    process.quantumnext = 0;
+                    processQueue.Enqueue(process);
+                    process = (sProcess)processQueue.Dequeue()!;
+                    output.Write(Encoding.Default.GetBytes("Process: " + process.index + " registered... (" + process.cputime + " " + process.cpudone + ")\n"));
+                    finish = true;
                 }
                 process.cpudone++;
-                if (process.ioblocking > 0)
-                {
-                    process.ionext++;
-                }
+                process.quantumnext++;
                 comptime++;
+            }
+            if (!finish)
+            {
+                output.Write(Encoding.Default.GetBytes("Process: " + process.index + " did not finish... (" + process.cputime + " " + process.cpudone + ")\n"));
             }
             output.Close();
         }
         catch (IOException e) { /* Handle exceptions */ }
+
         result.compuTime = comptime;
         return result;
     }

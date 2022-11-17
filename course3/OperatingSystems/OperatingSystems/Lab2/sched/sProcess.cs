@@ -3,17 +3,17 @@
 public class sProcess
 {
     public int cputime;
-    public int ioblocking;
     public int cpudone;
-    public int ionext;
+    public int quantumnext;
     public int numblocked;
+    public int index;
 
-    public sProcess(int cputime, int ioblocking, int cpudone, int ionext, int numblocked)
+    public sProcess(int cputime, int cpudone, int quantumnext, int numblocked, int index)
     {
         this.cputime = cputime;
-        this.ioblocking = ioblocking;
         this.cpudone = cpudone;
-        this.ionext = ionext;
+        this.quantumnext = quantumnext;
         this.numblocked = numblocked;
+        this.index = index;
     }
 }
